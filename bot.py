@@ -1,4 +1,3 @@
-# bot.py
 import requests
 import time
 import json
@@ -19,22 +18,6 @@ from keyboards import *
 from admin_panel import *
 
 # متغیرهای سراسری برای ذخیره وضعیت کاربران
-user_temp_data = {}      # ذخیره موقت اطلاعات کاربر (نام، شماره، وزن، ...)
-user_states = {}         # ذخیره وضعیت کاربر (waiting_fullname, waiting_phone, ...)
-
-# ======================== ادامه کد (توابع send_message, get_updates, ...) ========================
-
-# تنظیم کدینگ خروجی کنسول برای ویندوز
-if sys.platform == "win32":
-    sys.stdout.reconfigure(encoding='utf-8')
-    sys.stderr.reconfigure(encoding='utf-8')
-
-from config import TOKEN, BASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD
-from database import save_user_interaction, get_all_users_data, get_users_data_by_days
-from keyboards import *
-from admin_panel import *
-
-# متغیرهای ذخیره وضعیت کاربران
 user_temp_data = {}
 user_states = {}
 
@@ -72,50 +55,62 @@ def get_updates(offset=None):
     response = requests.post(url, json=payload)
     return response.json().get("result", [])
 
-# ========================  CSV ا========================
+# ======================== تابع ارسال CSV ========================
 def send_csv(chat_id, data_list, filename_prefix):
     if not data_list:
         send_message(chat_id, "⚠️ اطلاعاتی برای این بازه وجود ندارد.")
         return
     
     try:
-        my_fields_order = [
-            'نام و نام خانوادگی',      
-            'شماره تماس',        
-            'خدمات انتخاب شده',       
-            'نوع مشتری(مخصوص لیزر)', 
-            'وزن',       
-            'قد',      
-            'سن',         
-            'جنسیت',      
-            'تاریخ',         
-            'زمان'           
+        # نگاشت فیلد انگلیسی به فارسی
+        field_mapping = {
+            'fullname': 'نام و نام خانوادگی',
+            'phone': 'شماره تماس',
+            'service': 'خدمات انتخاب شده',
+            'customer_type': 'نوع مشتری',
+            'weight': 'وزن',
+            'height': 'قد',
+            'age': 'سن',
+            'gender': 'جنسیت',
+            'تاریخ': 'تاریخ مراجعه',
+            'زمان': 'ساعت مراجعه'
+        }
+        
+        # ترتیب دلخواه ستون‌ها
+        english_fields_order = [
+            'fullname',
+            'phone',
+            'service',
+            'customer_type',
+            'weight',
+            'height',
+            'age',
+            'gender',
+            'تاریخ',
+            'زمان'
         ]
         
-        # فیلدهایی که اصلاً نمیخوای توی CSV باشن
-        unwanted_fields = ['_id', 'timestamp']
-        # ==============================================
-        
-        # فقط فیلدهای مورد نظر رو نگه دار
-        fieldnames = [f for f in my_fields_order if f not in unwanted_fields]
+        # ساخت هدرهای فارسی به همین ترتیب
+        persian_headers = [field_mapping[field] for field in english_fields_order]
         
         # ساخت فایل CSV
         filepath = os.path.join(os.getcwd(), f"{filename_prefix}.csv")
         
         with open(filepath, 'w', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
+            # نوشتن هدرهای فارسی
+            f.write(','.join(persian_headers) + '\n')
             
+            # نوشتن دیتا
             for record in data_list:
-                # فقط فیلدهای مورد نظر رو از دیتابیس بگیر
-                filtered_record = {}
-                for field in fieldnames:
+                row = []
+                for field in english_fields_order:
                     value = record.get(field, "")
-                    # اگه مقدار None بود به خالی تبدیل کن
                     if value is None:
                         value = ""
-                    filtered_record[field] = value
-                writer.writerow(filtered_record)
+                    # حذف ویرگول و نقل قول مزاحم
+                    value_str = str(value).replace(',', ' ').replace('"', '')
+                    row.append(f'"{value_str}"')
+                f.write(','.join(row) + '\n')
         
         # ارسال فایل
         url = f"{BASE_URL}/sendDocument"
@@ -170,7 +165,43 @@ def process_phone(chat_id, user_id, phone):
         send_message(chat_id, "⚠️ شماره باید ۱۱ رقمی و با ۰۹ شروع شود. دوباره وارد کنید:")
         user_states[user_id] = "waiting_phone"
 
-# ======================== توابع دریافت رژیم ========================
+# ======================== توابع دریافت رژیم (وزن، قد، سن، جنسیت، سپس اسم و شماره) ========================
+def ask_diet_weight(chat_id, user_id, service_info):
+    user_temp_data[user_id] = service_info
+    user_states[user_id] = "waiting_diet_weight"
+    send_message(chat_id, "⚖️ وزن خود را به کیلوگرم وارد کنید:")
+
+def ask_diet_height(chat_id, user_id):
+    user_states[user_id] = "waiting_diet_height"
+    send_message(chat_id, "📏 قد خود را به سانتی‌متر وارد کنید:")
+
+def ask_diet_age(chat_id, user_id):
+    user_states[user_id] = "waiting_diet_age"
+    send_message(chat_id, "🎂 سن خود را وارد کنید:")
+
+def ask_diet_gender(chat_id, user_id):
+    user_states[user_id] = "waiting_diet_gender"
+    send_message(chat_id, "👤 جنسیت خود را وارد کنید (مرد/زن):")
+
+def process_diet_weight(chat_id, user_id, weight):
+    user_temp_data[user_id]["weight"] = weight
+    ask_diet_height(chat_id, user_id)
+
+def process_diet_height(chat_id, user_id, height):
+    user_temp_data[user_id]["height"] = height
+    ask_diet_age(chat_id, user_id)
+
+def process_diet_age(chat_id, user_id, age):
+    user_temp_data[user_id]["age"] = age
+    ask_diet_gender(chat_id, user_id)
+
+def process_diet_gender(chat_id, user_id, gender):
+    user_temp_data[user_id]["gender"] = gender
+    # بعد از جنسیت، اسم رو بپرس
+    user_states[user_id] = "waiting_fullname"
+    send_message(chat_id, "👤 لطفاً نام و نام خانوادگی خود را وارد کنید:")
+
+# ======================== بقیه توابع دریافت اطلاعات ========================
 def ask_weight(chat_id, user_id, service_info):
     user_temp_data[user_id] = service_info
     user_states[user_id] = "waiting_weight"
@@ -269,7 +300,8 @@ def handle_callback(chat_id, message_id, callback_data, user_id):
         return
     
     if callback_data == "get_diet":
-        ask_weight(chat_id, user_id, {"service": "دریافت رژیم"})
+        # دریافت رژیم: اول وزن، قد، سن، جنسیت، سپس اسم و شماره
+        ask_diet_weight(chat_id, user_id, {"service": "دریافت رژیم"})
         return
     
     if callback_data == "weight_device":
@@ -353,11 +385,23 @@ def handle_message(chat_id, user_id, text):
     elif state == "waiting_gender":
         process_gender(chat_id, user_id, text)
     
+    # وضعیت‌های جدید برای دریافت رژیم
+    elif state == "waiting_diet_weight":
+        process_diet_weight(chat_id, user_id, text)
+    
+    elif state == "waiting_diet_height":
+        process_diet_height(chat_id, user_id, text)
+    
+    elif state == "waiting_diet_age":
+        process_diet_age(chat_id, user_id, text)
+    
+    elif state == "waiting_diet_gender":
+        process_diet_gender(chat_id, user_id, text)
+    
     else:
         send_message(chat_id, "به کلینیک زیبایی لادن خوش آمدید🌹\nلطفا خدمات موردنظر خود را انتخاب کنید", reply_markup=main_menu())
 
 # ======================== پنل ادمین ========================
-# ======================== پنل ادمین (نسخه کاملاً اصلاح شده) ========================
 def handle_admin_login(chat_id, user_id, text, step):
     if step == "username":
         if text == ADMIN_USERNAME:
@@ -396,6 +440,7 @@ def handle_admin_login(chat_id, user_id, text, step):
             if fail[0] >= MAX_ADMIN_ATTEMPTS:
                 send_message(chat_id, f"🔒 به دلیل {MAX_ADMIN_ATTEMPTS} بار تلاش ناموفق، ۱۰ دقیقه مسدود شدید.")
             user_states.pop(user_id, None)
+
 # ======================== حلقه اصلی دریافت آپدیت ========================
 def main():
     last_update_id = 0
