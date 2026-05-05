@@ -1,5 +1,5 @@
 # config.py
-TOKEN = "703323711:sMXBn-yoJRGQlz3mAusUGw3HJvzUNsp3sRI"
+TOKEN = "Your Bot token"
 BASE_URL = f"https://tapi.bale.ai/bot{TOKEN}"
 
 ADMIN_USERNAME = "cl_admin10"
