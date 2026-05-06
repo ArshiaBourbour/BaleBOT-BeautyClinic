@@ -1,7 +1,7 @@
 # admin_panel.py
 from datetime import datetime, timedelta
 import pytz
-from config import MAX_ADMIN_ATTEMPTS, ADMIN_BLOCK_MINUTES, ADMIN_SESSION_MINUTES, TIMEZONE
+from config import TIMEZONE, MAX_ADMIN_ATTEMPTS, ADMIN_BLOCK_MINUTES, ADMIN_SESSION_MINUTES
 
 tehran = pytz.timezone(TIMEZONE)
 admin_fails = {}
@@ -31,10 +31,6 @@ def is_admin_blocked(user_id):
 
 def start_admin_session(user_id):
     admin_active_sessions[user_id] = datetime.now(tehran)
-
-def get_admin_session_start_time(user_id):
-    """دریافت زمان شروع نشست ادمین"""
-    return admin_active_sessions.get(user_id)
 
 def is_admin_session_active(user_id):
     if user_id not in admin_active_sessions:
