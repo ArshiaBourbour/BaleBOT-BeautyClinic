@@ -1,10 +1,9 @@
-# database.py
 from pymongo import MongoClient
 from datetime import datetime
 import pytz
 import jdatetime
 
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient("mongodb://localhost:27017/")  ## Local 
 db = client["bale_beauty_clinic"]
 users_col = db["users"]
 
