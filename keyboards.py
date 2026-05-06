@@ -1,6 +1,4 @@
-# keyboards.py
 def make_inline_keyboard(buttons):
-    """ساخت کیبورد شیشه‌ای با دکمه‌های一行ی"""
     keyboard = {
         "inline_keyboard": [[{"text": btn[0], "callback_data": btn[1]}] for btn in buttons]
     }
