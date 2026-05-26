@@ -3,7 +3,7 @@ from datetime import datetime
 import pytz
 import jdatetime
 
-client = MongoClient("mongodb://localhost:27017/")  ## Local 
+client = MongoClient("mongodb://localhost:27017/")  ## Local  
 db = client["bale_beauty_clinic"]
 users_col = db["users"]
 
@@ -20,11 +20,9 @@ def get_bot_stats():
     """دریافت آمار کلی ربات"""
     total_users = users_col.count_documents({})
     
-    # آمار امروز
     today = jdatetime.date.today().strftime("%Y/%m/%d")
     today_count = users_col.count_documents({"تاریخ": today})
     
-    # آمار این هفته
     from datetime import timedelta
     week_ago = datetime.now(tehran_tz) - timedelta(days=7)
     week_count = users_col.count_documents({"timestamp": {"$gte": week_ago}})
