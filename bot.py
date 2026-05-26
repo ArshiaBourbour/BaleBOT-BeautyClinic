@@ -1,4 +1,3 @@
-# bot.py
 import requests
 import time
 import json
@@ -9,7 +8,6 @@ import os
 from datetime import datetime, timedelta
 import pytz
 
-# تنظیم کدینگ خروجی کنسول برای ویندوز
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding='utf-8')
     sys.stderr.reconfigure(encoding='utf-8')
@@ -19,11 +17,9 @@ from database import save_user_interaction, get_all_users_data, get_users_data_b
 from keyboards import *
 from admin_panel import *
 
-# ======================== متغیرهای سراسری ========================
 user_temp_data = {}
 user_states = {}
 
-# ======================== توابع کمکی API بله ========================
 def send_message(chat_id, text, reply_markup=None):
     url = f"{BASE_URL}/sendMessage"
     payload = {
@@ -57,7 +53,6 @@ def get_updates(offset=None):
     response = requests.post(url, json=payload)
     return response.json().get("result", [])
 
-# ======================== تابع ارسال CSV با هدرهای فارسی ========================
 def send_csv(chat_id, data_list, filename_prefix):
     if not data_list:
         send_message(chat_id, "⚠️ اطلاعاتی برای این بازه وجود ندارد.")
@@ -158,7 +153,6 @@ def process_phone(chat_id, user_id, phone):
         send_message(chat_id, "⚠️ شماره باید ۱۱ رقمی و با ۰۹ شروع شود. دوباره وارد کنید:")
         user_states[user_id] = "waiting_phone"
 
-# ======================== توابع دریافت رژیم ========================
 def ask_diet_weight(chat_id, user_id, service_info):
     user_temp_data[user_id] = service_info
     user_states[user_id] = "waiting_diet_weight"
@@ -193,7 +187,6 @@ def process_diet_gender(chat_id, user_id, gender):
     user_states[user_id] = "waiting_fullname"
     send_message(chat_id, "👤 لطفاً نام و نام خانوادگی خود را وارد کنید:")
 
-# ======================== توابع دریافت اطلاعات (برای سایر موارد) ========================
 def ask_weight(chat_id, user_id, service_info):
     user_temp_data[user_id] = service_info
     user_states[user_id] = "waiting_weight"
@@ -227,7 +220,6 @@ def process_gender(chat_id, user_id, gender):
     user_temp_data[user_id]["gender"] = gender
     ask_phone(chat_id, user_id)
 
-# ======================== هندلر دکمه‌ها ========================
 def handle_callback(chat_id, message_id, callback_data, user_id):
     if callback_data == "back_main":
         edit_message_text(chat_id, message_id, "به کلینیک زیبایی لادن خوش آمدید🌹\nلطفا خدمات موردنظر خود را انتخاب کنید", reply_markup=main_menu())
@@ -346,7 +338,6 @@ def handle_callback(chat_id, message_id, callback_data, user_id):
         edit_message_text(chat_id, message_id, "🚪 از پنل ادمین خارج شدید.")
         return
 
-# ======================== هندلر پیام‌های متنی ========================
 def handle_message(chat_id, user_id, text):
     state = user_states.get(user_id)
     
@@ -383,7 +374,6 @@ def handle_message(chat_id, user_id, text):
     else:
         send_message(chat_id, "به کلینیک زیبایی لادن خوش آمدید🌹\nلطفا خدمات موردنظر خود را انتخاب کنید", reply_markup=main_menu())
 
-# ======================== پنل ادمین لاگین ========================
 def handle_admin_login(chat_id, user_id, text, step):
     print(f"DEBUG: step={step}, text={text}")
     
@@ -427,7 +417,6 @@ def handle_admin_login(chat_id, user_id, text, step):
                 send_message(chat_id, f"🔒 به دلیل {MAX_ADMIN_ATTEMPTS} بار تلاش ناموفق، ۱۰ دقیقه مسدود شدید.")
             user_states.pop(user_id, None)
 
-# ======================== حلقه اصلی دریافت آپدیت ========================
 def main():
     last_update_id = 0
 
