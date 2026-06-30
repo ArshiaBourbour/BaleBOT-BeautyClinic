@@ -433,14 +433,6 @@ Recommended logging includes
 
 ---
 
-# 🤝 Contributing
-
-Contributions are welcome.
-
-Feel free to fork the project, open issues, and submit pull requests.
-
----
-
 # 📄 License
 
 This project is released under the MIT License.
